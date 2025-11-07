@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Room Expense Manager</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fc;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      text-align: center;
+      padding: 10px;
+    }
+    .summary {
+      background: #eef;
+      padding: 10px;
+      margin-top: 20px;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏠 Room Expense Manager (कमरे का खर्च)</h1>
+  <h2> Designed by kaif malik</h2>
+  <div class="container">
+    <label for="name">Select Name (नाम चुनें):</label>
+    <select id="name">
+      <option value="">-- Select --</option>
+      <option value="Kaif">Kaif</option>
+      <option value="Surkhab">Surkhab</option>
+      <option value="Faizan">Faizan</option>
+      <option value="furqan">furqan</option>
+    </select>
+
+    <label for="amount">Amount (₹ में खर्च):</label>
+    <input type="number" id="amount" placeholder="Enter amount" />
+
+    <label for="note">Note (विवरण):</label>
+    <input type="text" id="note" placeholder="What was this for?" />
+
+    <button onclick="addExpense()">Add Expense (खर्च जोड़ें)</button>
+
+    <table id="expenseTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Amount (₹)</th>
+          <th>Note</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDRJY8P5gj8mMxwP9nOkW6oS5j0CAQrmww",
+      authDomain: "room-expense-manager-ed75e.firebaseapp.com",
+      databaseURL: "https://room-expense-manager-ed75e-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "room-expense-manager-ed75e",
+      storageBucket: "room-expense-manager-ed75e.appspot.com",
+      messagingSenderId: "654641302717",
+      appId: "1:654641302717:web:2786cd09839f0893c07bd4",
+      measurementId: "G-9M5PKQ34YV"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Add expense
+    window.addExpense = function() {
+      const name = document.getElementById("name").value;
+      const amount = parseFloat(document.getElementById("amount").value);
+      const note = document.getElementById("note").value;
+      const date = new Date().toLocaleString();
+
+      if (!name || !amount) {
+        alert("Please fill name and amount!");
+        return;
+      }
+
+      const newExpense = { name, amount, note, date };
+      const newRef = push(ref(db, "expenses"));
+      set(newRef, newExpense);
+
+      document.getElementById("amount").value = "";
+      document.getElementById("note").value = "";
+    };
+
+    // Load data
+    const expensesRef = ref(db, "expenses");
+    onValue(expensesRef, (snapshot) => {
+      const data = snapshot.val();
+      const tbody = document.querySelector("#expenseTable tbody");
+      tbody.innerHTML = "";
+
+      let totals = { Kaif: 0, Surkhab: 0, Faizan: 0, furqan: 0 };
+      let totalSpent = 0;
+
+      for (let id in data) {
+        const exp = data[id];
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${exp.name}</td><td>${exp.amount}</td><td>${exp.note}</td><td>${exp.date}</td>`;
+        tbody.appendChild(tr);
+
+        totals[exp.name] += parseFloat(exp.amount);
+        totalSpent += parseFloat(exp.amount);
+      }
+
+      const perPerson = totalSpent / 4;
+      let summaryText = `Total Spent: ₹${totalSpent.toFixed(2)}<br>`;
+      summaryText += `Each person should pay ₹${perPerson.toFixed(2)}<br><br>`;
+
+      for (let person in totals) {
+        const diff = totals[person] - perPerson;
+        if (diff > 0) summaryText += `${person} paid ₹${diff.toFixed(2)} extra.<br>`;
+        else summaryText += `${person} should pay ₹${Math.abs(diff).toFixed(2)} more.<br>`;
+      }
+
+      document.getElementById("summary").innerHTML = summaryText;
+    });
+  </script>
+</body>
+</html>
